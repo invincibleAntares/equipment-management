@@ -15,9 +15,4 @@ export default defineConfig({
       '@': path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'src'),
     },
   },
-  server: {
-    proxy: {
-      '/api': 'http://localhost:8080',
-    },
-  },
 })

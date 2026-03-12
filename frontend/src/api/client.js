@@ -8,8 +8,14 @@ async function parseJsonSafe(response) {
   }
 }
 
+const API_BASE_URL = "http://localhost:8080"
+
 export async function apiFetch(path, options) {
-  const res = await fetch(path, {
+  const url = path.startsWith("http://") || path.startsWith("https://")
+    ? path
+    : `${API_BASE_URL}${path}`
+
+  const res = await fetch(url, {
     headers: { "Content-Type": "application/json", ...(options?.headers ?? {}) },
     ...options,
   })
