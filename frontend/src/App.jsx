@@ -1,15 +1,7 @@
-import { useState } from 'react'
-
-import './App.css'
+import { EquipmentPage } from "@/features/equipment/EquipmentPage"
 
 function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-     <h1 class="text-3xl font-bold underline  text-red-500">
-    Hello world!
-  </h1>
-  )
+  return <EquipmentPage />
 }
 
 export default App

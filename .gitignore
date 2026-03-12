@@ -14,3 +14,8 @@ Thumbs.db
 
 # Environment variables
 .env
+
+# VS Code (avoid committing personal settings)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json

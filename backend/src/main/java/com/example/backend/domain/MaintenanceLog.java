@@ -28,9 +28,8 @@ public class MaintenanceLog {
 	@Column(name = "maintenance_date", nullable = false)
 	private LocalDate maintenanceDate;
 
-	@Lob
-	@Column
-	private String notes;
+	@Column(columnDefinition = "TEXT")
+private String notes;
 
 	@Column(name = "performed_by", nullable = false, length = 120)
 	private String performedBy;
