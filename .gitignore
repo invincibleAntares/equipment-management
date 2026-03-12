@@ -1,0 +1,16 @@
+# Node
+node_modules
+dist
+.vite
+
+# Spring Boot / Java
+target
+*.log
+*.class
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
