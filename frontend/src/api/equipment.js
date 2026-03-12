@@ -16,6 +16,10 @@ export function deleteEquipment(id) {
   return apiFetch(`/api/equipment/${id}`, { method: "DELETE" })
 }
 
+export function deleteEquipmentForce(id) {
+  return apiFetch(`/api/equipment/${id}?force=true`, { method: "DELETE" })
+}
+
 export function getEquipmentTypes() {
   return apiFetch("/api/equipment-types")
 }

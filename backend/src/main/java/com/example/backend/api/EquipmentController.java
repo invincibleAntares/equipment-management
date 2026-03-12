@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -50,8 +51,8 @@ public class EquipmentController {
 
 	@DeleteMapping("/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void deleteEquipment(@PathVariable long id) {
-		equipmentService.deleteEquipment(id);
+	public void deleteEquipment(@PathVariable long id, @RequestParam(defaultValue = "false") boolean force) {
+		equipmentService.deleteEquipment(id, force);
 	}
 
 	@GetMapping("/{id}/maintenance")

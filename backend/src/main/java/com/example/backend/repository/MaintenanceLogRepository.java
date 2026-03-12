@@ -10,5 +10,7 @@ public interface MaintenanceLogRepository extends JpaRepository<MaintenanceLog, 
 	boolean existsByEquipment_Id(Long equipmentId);
 
 	List<MaintenanceLog> findByEquipment_IdOrderByMaintenanceDateDescIdDesc(Long equipmentId);
+
+	void deleteByEquipment_Id(Long equipmentId);
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import {
   deleteEquipment,
+  deleteEquipmentForce,
   getEquipment,
   getEquipmentTypes,
 } from "@/api/equipment"
@@ -15,6 +16,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -24,11 +33,19 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { EquipmentFormDialog } from "@/features/equipment/EquipmentFormDialog"
-import { statusToBadgeVariant } from "@/features/equipment/equipmentTypes"
+import { EQUIPMENT_STATUSES, statusToBadgeVariant } from "@/features/equipment/equipmentTypes"
 import { MaintenanceHistoryDialog } from "@/features/maintenance/MaintenanceHistoryDialog"
 import { MaintenanceLogDialog } from "@/features/maintenance/MaintenanceLogDialog"
 
-function ConfirmDeleteDialog({ open, onOpenChange, equipment, onConfirm, error }) {
+function ConfirmDeleteDialog({
+  open,
+  onOpenChange,
+  equipment,
+  onConfirm,
+  onForceConfirm,
+  error,
+  showForce,
+}) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -50,8 +67,13 @@ function ConfirmDeleteDialog({ open, onOpenChange, equipment, onConfirm, error }
           <Button variant="secondary" type="button" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button variant="destructive" type="button" onClick={onConfirm} disabled={!equipment}>
-            Delete
+          <Button
+            variant="destructive"
+            type="button"
+            onClick={showForce ? onForceConfirm : onConfirm}
+            disabled={!equipment}
+          >
+            {showForce ? "Delete anyway" : "Delete"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -65,6 +87,9 @@ export function EquipmentPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  const [statusFilter, setStatusFilter] = useState("ALL")
+  const [search, setSearch] = useState("")
+
   const [addOpen, setAddOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -73,12 +98,24 @@ export function EquipmentPage() {
 
   const [selected, setSelected] = useState(null)
   const [deleteError, setDeleteError] = useState("")
+  const [canForceDelete, setCanForceDelete] = useState(false)
 
   const typesById = useMemo(() => {
     const m = new Map()
     for (const t of types) m.set(t.id, t)
     return m
   }, [types])
+
+  const visibleEquipment = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return equipment.filter((e) => {
+      if (statusFilter !== "ALL" && e.status !== statusFilter) return false
+      if (!q) return true
+      const name = String(e.name ?? "").toLowerCase()
+      const typeName = String(e.type?.name ?? "").toLowerCase()
+      return name.includes(q) || typeName.includes(q)
+    })
+  }, [equipment, search, statusFilter])
 
   async function refreshAll() {
     setLoading(true)
@@ -101,10 +138,29 @@ export function EquipmentPage() {
   async function onDeleteConfirm() {
     if (!selected?.id) return
     setDeleteError("")
+    setCanForceDelete(false)
     try {
       await deleteEquipment(selected.id)
       setDeleteOpen(false)
       setSelected(null)
+      await refreshAll()
+    } catch (e) {
+      const msg = e?.body?.message || e?.message || "Failed to delete."
+      setDeleteError(msg)
+      if (e?.status === 409) {
+        setCanForceDelete(true)
+      }
+    }
+  }
+
+  async function onForceDeleteConfirm() {
+    if (!selected?.id) return
+    setDeleteError("")
+    try {
+      await deleteEquipmentForce(selected.id)
+      setDeleteOpen(false)
+      setSelected(null)
+      setCanForceDelete(false)
       await refreshAll()
     } catch (e) {
       setDeleteError(e?.body?.message || e?.message || "Failed to delete.")
@@ -136,7 +192,31 @@ export function EquipmentPage() {
           </div>
         ) : null}
 
-        <div className="mt-6 rounded-md border border-slate-200">
+        <div className="mt-6 overflow-hidden rounded-md border border-slate-200">
+          <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-50/50 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="w-full sm:max-w-xs">
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or type..."
+              />
+            </div>
+            <div className="w-full sm:w-56">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All statuses</SelectItem>
+                  {EQUIPMENT_STATUSES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -154,14 +234,16 @@ export function EquipmentPage() {
                     Loading…
                   </TableCell>
                 </TableRow>
-              ) : equipment.length === 0 ? (
+              ) : visibleEquipment.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-slate-500">
-                    No equipment yet. Add your first item.
+                    {equipment.length === 0
+                      ? "No equipment yet. Add your first item."
+                      : "No results. Try clearing filters or changing your search."}
                   </TableCell>
                 </TableRow>
               ) : (
-                equipment.map((e) => (
+                visibleEquipment.map((e) => (
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">{e.name}</TableCell>
                     <TableCell>{e.type?.name ?? typesById.get(e.typeId)?.name ?? "—"}</TableCell>
@@ -211,6 +293,7 @@ export function EquipmentPage() {
                           onClick={() => {
                             setSelected(e)
                             setDeleteError("")
+                            setCanForceDelete(false)
                             setDeleteOpen(true)
                           }}
                         >
@@ -249,7 +332,9 @@ export function EquipmentPage() {
         onOpenChange={setDeleteOpen}
         equipment={selected}
         onConfirm={onDeleteConfirm}
+        onForceConfirm={onForceDeleteConfirm}
         error={deleteError}
+        showForce={canForceDelete}
       />
 
       <MaintenanceHistoryDialog

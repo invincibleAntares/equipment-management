@@ -76,16 +76,20 @@ public class EquipmentService {
 	}
 
 	@Transactional
-	public void deleteEquipment(long id) {
+	public void deleteEquipment(long id, boolean force) {
 		Equipment equipment = equipmentRepository.findById(id)
 				.orElseThrow(() -> new NotFoundException("Equipment not found.", "EQUIPMENT_NOT_FOUND"));
 
-		if (maintenanceLogRepository.existsByEquipment_Id(equipment.getId())) {
+		boolean hasMaintenance = maintenanceLogRepository.existsByEquipment_Id(equipment.getId());
+		if (hasMaintenance && !force) {
 			throw new ConflictException(
 					"Equipment cannot be deleted because maintenance history exists.",
 					"EQUIPMENT_DELETE_BLOCKED_BY_MAINTENANCE_HISTORY");
 		}
 
+		if (hasMaintenance && force) {
+			maintenanceLogRepository.deleteByEquipment_Id(equipment.getId());
+		}
 		equipmentRepository.delete(equipment);
 	}
 
